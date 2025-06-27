@@ -2,11 +2,13 @@ import argparse
 import asd_course
 
 def check_task(task):
-    raise NotImplementedError
+    passed, msg = task.check()
+    print(passed, msg)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", required=True, choices=["check"])
+    parser.add_argument("--language", required=True, choices=["cpp", "python3"])
     subparsers = parser.add_subparsers(required=True)
 
     subclasses = asd_course.base_module.BaseTask.__subclasses__()
@@ -16,7 +18,7 @@ if __name__ == "__main__":
         cls.add_args(subparser)
 
     args = parser.parse_args()
-    task = args.func()
+    task = args.func(**vars(args))
 
     match args.mode:
         case "check": check_task(task)

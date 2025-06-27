@@ -1,14 +1,18 @@
-from asd_course.base_module import BaseTask
+from asd_course.base_module import BaseTask, TestCase
 import argparse
 
 class IntroLab(BaseTask):
-    def __init__(self):
-        pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.string = kwargs["string"]
 
-    def check(self):
-        return True
-    
+    def check(self) -> tuple[bool, str]:
+        tests = [
+            TestCase(stdin = "", expected = self.string, time_limit = 1)
+        ]
+        
+        return self.run_tests(tests)
+
     @staticmethod
     def add_args(parser : argparse.ArgumentParser) -> None:
-        parser.add_argument("--seed", required=True)
-        parser.add_argument("--n-numbers", required=True, default=2)
+        parser.add_argument("--string", default="Hello, World!")
