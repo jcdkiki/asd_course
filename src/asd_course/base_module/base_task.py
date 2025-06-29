@@ -66,13 +66,12 @@ class BaseTask:
 
     # raises Exception on time limit or compilation failure
     def run_solution(self, time_limit, stdin : str) -> str:
-        try:
-            if self.language == "python3":
-                return self.run_python3(stdin, time_limit)
-            elif self.language == "cpp":
-                return self.run_cpp(stdin, time_limit)
-            else:
-                raise LanguageException(f"Unknown language {self.language}")
+        if self.language == "python3":
+            return self.run_python3(stdin, time_limit)
+        elif self.language == "cpp":
+            return self.run_cpp(stdin, time_limit)
+        else:
+            raise LanguageException(f"Unknown language {self.language}")
 
     def run_tests(self, tests: list[TestCase]) -> tuple[bool, str]:
         correct = 0
