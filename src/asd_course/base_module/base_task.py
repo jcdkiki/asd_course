@@ -81,7 +81,7 @@ class BaseTask:
                 answ = self.run_solution(test.time_limit, test.stdin)
             except subprocess.CalledProcessError as e:
                 return False, e.output
-            except LinkException, CompileException, LanguageException as e:
+            except (LinkException, CompileException, LanguageException) as e:
                 return False, str(e)
             if answ == test.expected:
                 correct+=1
