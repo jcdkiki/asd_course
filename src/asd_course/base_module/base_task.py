@@ -58,7 +58,7 @@ class BaseTask:
             self.compile_cpp()
             self.build_cpp(self)
             self.is_compiled = True
-        if not cheating_checked:
+        if not self.cheating_checked:
             # smth like cpp_check_for_cheating("src.o")
             self.cheating_checked = True
         # we need to give subproc smth like [./src]
