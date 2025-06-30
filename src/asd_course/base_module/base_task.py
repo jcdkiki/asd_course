@@ -10,17 +10,22 @@ class TestCase:
 
 
 class CompileException(Exception):
-    def __init__(msg):
+    def __init__(self, msg):
         super().__init__(msg)
         
 
 class LinkException(Exception):
-    def __init__(msg):
+    def __init__(self, msg):
         super().__init__(msg)
         
         
 class LanguageException(Exception):
-    def __init__(msg):
+    def __init__(self, msg):
+        super().__init__(msg)
+        
+
+class TimeLimitException(Exception):
+    def __init__(self, msg):
         super().__init__(msg)
         
                 
@@ -47,10 +52,19 @@ class BaseTask:
             # smth like py_check_for_cheating(self.source)
             self.cheating_checked = True
         # we need to give subproc smth like ["python3", "./src.py"]
-        return subprocess.check_output(["python3", self.filename], input=stdin, universal_newlines=True)
+        try:
+            output = subprocess.check_output(
+                ["python3", self.filename], 
+                input=stdin, 
+                universal_newlines=True,
+                timeout=time_limit
+            )
+            return output
+        except subprocess.TimeoutExpired:
+            raise TimeLimitException("Time limit expired")
     
+    # throws CompileException on compilation error
     def compile_cpp(self):
-        # where source code stored? (self.source or just self.source seems good idk)
         # compile with 11 std like in moodle and get object src.o
         cpp_flags = "-Wall -Werror -std=c++11"
         compile_cmd = (f"g++ {cpp_flags} -c -o ./__tester__.o {self.filename}").split()
@@ -59,6 +73,7 @@ class BaseTask:
             raise CompileException("Compilation failed. Testing aborted")
         print(str(subprocess.check_call(["ls","-l"])))
 
+    # throws LinkException on linking error
     def build_cpp(self):
         # link an object and get binary src
         bin_cmd = (f"g++ -std=c++11 -o __tester__ ./__tester__.o").split()
@@ -76,7 +91,16 @@ class BaseTask:
             # smth like cpp_check_for_cheating("src.o")
             self.cheating_checked = True
         # we need to give subproc smth like [./src]
-        return subprocess.check_output(["./__tester__"], input=stdin, universal_newlines=True)
+        try:
+            output = subprocess.check_output(
+                ["./__tester__"], 
+                input=stdin, 
+                universal_newlines=True,
+                timeout=time_limit
+            )
+            return output
+        except subprocess.TimeoutExpired:
+            raise TimeLimitException("Time limit expired")
 
     # raises Exception on time limit or compilation failure
     def run_solution(self, time_limit, stdin : str) -> str:
@@ -88,20 +112,21 @@ class BaseTask:
             raise LanguageException(f"Unknown language {self.language}")
 
     def run_tests(self, tests: list[TestCase]) -> tuple[bool, str]:
-        # we can skip it if student will write includes by himself idk
+        # ??? we can skip it if student will write includes by himself idk
         with open(self.filename, "w") as file:
             print(self.source, file=file)
         
         correct = 0
         for test in tests:
             try:
-                answ = self.run_solution(test.time_limit, test.stdin).strip()
+                raw_answ = self.run_solution(test.time_limit, test.stdin)
+                answ = raw_answ.strip() if raw_answ is not None else None
                 print(answ)
             except subprocess.CalledProcessError as e:
                 return False, e.output
-            except (LinkException, CompileException, LanguageException) as e:
+            except (LinkException, CompileException, LanguageException, TimeLimitException) as e:
                 return False, str(e)
-            if answ == test.expected: # maybe we can skip expected item if we will run example code in timelimit checks
+            if answ == test.expected: # ??? maybe we can skip expected item if we will run example code in timelimit checks
                 correct+=1
         print(f"{len(tests)} have passed!")
         if correct == len(tests):
