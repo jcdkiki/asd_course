@@ -4,4 +4,7 @@ docker run --rm -it -v ./src/asd_course/lab0_intro/solution.py:/app/src/solution
 --mode check \
 --language python3 \
 IntroLab \
---string bcd
+--test_a bcd \
+--test_b helloworld \
+--test_c howdyho \
+--test_d wowowoowowowowowowowowowowowowo

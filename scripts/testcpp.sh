@@ -4,4 +4,7 @@ docker run --rm -it -v ./src/asd_course/lab0_intro/solution.cpp:/app/src/solutio
 --mode check \
 --language cpp \
 IntroLab \
---string bcd
+--test_a bcd \
+--test_b helloworld \
+--test_c howdyho \
+--test_d wowowoowowowowowowowowowowowowo

@@ -103,6 +103,7 @@ class BaseTask:
                 return False, str(e)
             if answ == test.expected: # maybe we can skip expected item if we will run example code in timelimit checks
                 correct+=1
+        print(f"{len(tests)} have passed!")
         if correct == len(tests):
             return True, "OK"
         else:
