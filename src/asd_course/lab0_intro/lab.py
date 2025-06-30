@@ -8,7 +8,7 @@ class IntroLab(BaseTask):
 
     def check(self) -> tuple[bool, str]:
         tests = [
-            TestCase(stdin = "", expected = self.string, time_limit = 1)
+            TestCase(stdin = "abc", expected = self.string, time_limit = 1)
         ]
         
         return self.run_tests(tests)

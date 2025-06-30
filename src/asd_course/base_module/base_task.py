@@ -27,7 +27,7 @@ class LanguageException(Exception):
 class BaseTask:
     def __init__(self, *args, **kwargs):
         self.language = kwargs["language"]
-        self.source_filename = kwargs["source"] # if we'll store filename of source
+        self.source_filename = kwargs["solution"] # if we'll store filename of source
         self.is_compiled = False
         self.cheating_checked = False
 
@@ -36,7 +36,8 @@ class BaseTask:
             # smth like py_check_for_cheating(self.source_filename)
             self.cheating_checked = True
         # we need to give subproc smth like ["python3", "./src.py"]
-        return subprocess.check_output(["python3", self.source_filename], input=stdin)
+        input = stdin.encode()
+        return subprocess.check_output(["python3", self.source_filename], input=input)
     
     def compile_cpp(self):
         # where source code stored? (self.source or just self.source_filename seems good idk)
