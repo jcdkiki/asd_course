@@ -1,15 +1,7 @@
 #!/bin/bash
-
-docker run --rm -it moevm/asd_course \
+# we mount <full_path>/solution.cpp to app/src/solution.cpp
+docker run --rm -it -v ./src/asd_course/lab0_intro/solution.cpp:/app/src/solution.cpp:ro moevm/asd_course \
 --mode check \
 --language cpp \
---solution "int main(){
-std::string s;
-std::cin>>s;
-for(int i = 0; i < (int)s.size(); ++i){
-    s[i] = 97 + (s[i] - 97 + 1)%26;
-}
-std::cout<<s;
-}" \
 IntroLab \
 --string bcd
