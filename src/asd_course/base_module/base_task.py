@@ -27,43 +27,46 @@ class LanguageException(Exception):
 class BaseTask:
     def __init__(self, *args, **kwargs):
         self.language = kwargs["language"]
-        self.source_filename = kwargs["solution"] # if we'll store filename of source
+        self.source = kwargs["solution"] # if we'll store filename of source
+        self.filename = "__tester__.py" if self.language == "python3" else "__tester__.cpp"
         self.is_compiled = False
         self.cheating_checked = False
 
     def run_python3(self, stdin, time_limit) -> str:
         if not self.cheating_checked:
-            # smth like py_check_for_cheating(self.source_filename)
+            # smth like py_check_for_cheating(self.source)
             self.cheating_checked = True
         # we need to give subproc smth like ["python3", "./src.py"]
-        input = stdin.encode()
-        return subprocess.check_output(["python3", self.source_filename], input=input)
+        return subprocess.check_output(["python3", self.filename], input=stdin, universal_newlines=True)
     
     def compile_cpp(self):
-        # where source code stored? (self.source or just self.source_filename seems good idk)
+        # where source code stored? (self.source or just self.source seems good idk)
         # compile with 11 std like in moodle and get object src.o
-        compile_cmd = (f"g++ -std=c++11 {self.source_filename} -c -o src.o").split()
+        cpp_flags = "-Wall -Werror -std=c++11"
+        compile_cmd = (f"g++ {cpp_flags} -c -o ./src.o {self.filename}").split()
         return_code = subprocess.check_call(compile_cmd)
         if return_code != 0:
             raise CompileException("Compilation failed. Testing aborted")
+        print(str(subprocess.check_call(["ls","-l"])))
 
     def build_cpp(self):
         # link an object and get binary src
-        bin_cmd = (f"g++ -std=c++11 src.o -o src").split()
+        bin_cmd = (f"g++ -std=c++11 -o src ./src.o").split()
         return_code = subprocess.check_call(bin_cmd)
         if return_code != 0:
             raise LinkException("Linking failed. Testing aborted")
+        print(str(subprocess.check_call(["ls","-l"])))
         
     def run_cpp(self, stdin, time_limit) -> str:
         if not self.is_compiled:
             self.compile_cpp()
-            self.build_cpp(self)
+            self.build_cpp()
             self.is_compiled = True
         if not self.cheating_checked:
             # smth like cpp_check_for_cheating("src.o")
             self.cheating_checked = True
         # we need to give subproc smth like [./src]
-        return subprocess.check_call(["./src"], input=stdin)
+        return subprocess.check_output(["./src"], input=stdin, universal_newlines=True)
 
     # raises Exception on time limit or compilation failure
     def run_solution(self, time_limit, stdin : str) -> str:
@@ -75,10 +78,20 @@ class BaseTask:
             raise LanguageException(f"Unknown language {self.language}")
 
     def run_tests(self, tests: list[TestCase]) -> tuple[bool, str]:
+        with open(self.filename, "w") as file:
+            if self.language == "cpp":
+                self.source = """
+                #include <iostream>
+                #include <vector>
+                
+                """ + self.source
+            print(self.source, file=file)
+        
         correct = 0
         for test in tests:
             try:
-                answ = self.run_solution(test.time_limit, test.stdin)
+                answ = self.run_solution(test.time_limit, test.stdin).strip()
+                print(answ)
             except subprocess.CalledProcessError as e:
                 return False, e.output
             except (LinkException, CompileException, LanguageException) as e:

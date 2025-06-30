@@ -1,0 +1,15 @@
+#!/bin/bash
+
+docker run --rm -it moevm/asd_course \
+--mode check \
+--language cpp \
+--solution "int main(){
+std::string s;
+std::cin>>s;
+for(int i = 0; i < (int)s.size(); ++i){
+    s[i] = 97 + (s[i] - 97 + 1)%26;
+}
+std::cout<<s;
+}" \
+IntroLab \
+--string bcd
