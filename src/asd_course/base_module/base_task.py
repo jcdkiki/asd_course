@@ -1,5 +1,6 @@
 import argparse
 import dataclasses
+import subprocess
 
 @dataclasses.dataclass
 class TestCase:
@@ -8,23 +9,103 @@ class TestCase:
     time_limit : int = 1
 
 
+class CompileException(Exception):
+    def __init__(self, msg):
+        super().__init__(msg)
+        
+
+class LinkException(Exception):
+    def __init__(self, msg):
+        super().__init__(msg)
+        
+        
+class LanguageException(Exception):
+    def __init__(self, msg):
+        super().__init__(msg)
+        
+
+class TimeLimitException(Exception):
+    def __init__(self, msg):
+        super().__init__(msg)
+        
+                
 class BaseTask:
     def __init__(self, *args, **kwargs):
         self.language = kwargs["language"]
+        self.solution = kwargs["solution"]
+
+        match self.language:
+            case "python3":
+                with open('solution.py', 'w') as f:
+                    f.write(self.solution)
+            case "cpp":
+                with open('solution.cpp', 'w') as f:
+                    f.write(self.solution)
+            case _:
+                raise LanguageException("Unexpected language")
+
         self.is_compiled = False
+        self.cheating_checked = False
 
     def run_python3(self, stdin, time_limit) -> str:
-        raise NotImplementedError
+        if not self.cheating_checked:
+            # smth like py_check_for_cheating(self.source)
+            self.cheating_checked = True
+        
+        try:
+            r = subprocess.run(
+                ["python3", "solution.py"], 
+                input=stdin,
+                universal_newlines=True,
+                timeout=time_limit,
+                stderr=subprocess.STDOUT,
+                stdout=subprocess.PIPE
+            )
+            if r.returncode != 0:
+                raise Exception(f"Program exited with code {r.returncode}:\n{r.stdout}")
+            return r.stdout
+        except subprocess.TimeoutExpired:
+            raise TimeLimitException("Time limit expired")
     
+    # throws CompileException on compilation error
     def compile_cpp(self):
-        raise NotImplementedError
-
-    def run_cpp(self, stdin, time_limit):
+        cpp_flags = "-Wall -Werror -std=c++11"
+        compile_cmd = f"g++ {cpp_flags} -c solution.cpp"
+        run = subprocess.run(compile_cmd.split(), stderr=subprocess.PIPE)
+        if run.returncode != 0:
+            raise CompileException(f"Compilation failed:\n{run.stderr.decode()}")
+        
+    # throws LinkException on linking error
+    def link_cpp(self):
+        bin_cmd = f"g++ -std=c++11 -o solution solution.cpp"
+        run = subprocess.run(bin_cmd.split(), stderr=subprocess.PIPE)
+        if run.returncode != 0:
+            raise LinkException(f"Linking failed:\n{run.stderr.decode()}")
+        
+    def run_cpp(self, stdin, time_limit) -> str:
         if not self.is_compiled:
             self.compile_cpp()
+            self.link_cpp()
             self.is_compiled = True
+        if not self.cheating_checked:
+            # smth like cpp_check_for_cheating("src.o")
+            self.cheating_checked = True
         
-        raise NotImplementedError
+        try:
+            r = subprocess.run(
+                ["./solution"], 
+                input=stdin,
+                text=True,
+                universal_newlines=True,
+                timeout=time_limit,
+                stderr=subprocess.STDOUT,
+                stdout=subprocess.PIPE
+            )
+            if r.returncode != 0:
+                raise Exception(f"Program exited with code {r.returncode}:\n{r.stdout}")
+            return r.stdout
+        except subprocess.TimeoutExpired:
+            raise TimeLimitException("Time limit expired")
 
     # raises Exception on time limit or compilation failure
     def run_solution(self, time_limit, stdin : str) -> str:
@@ -32,9 +113,27 @@ class BaseTask:
             return self.run_python3(stdin, time_limit)
         elif self.language == "cpp":
             return self.run_cpp(stdin, time_limit)
+        else:
+            raise LanguageException(f"Unknown language {self.language}")
 
     def run_tests(self, tests: list[TestCase]) -> tuple[bool, str]:
-        raise NotImplementedError
+        for test in tests:
+            try:
+                raw_answ = self.run_solution(test.time_limit, test.stdin)
+                answ = raw_answ.strip()
+            except Exception as e:
+                return False, \
+                    f"Test failed:\n" \
+                    f"Error: {str(e)}" 
+            
+            if answ != test.expected:
+                return False, \
+                    f"Test failed:\n" \
+                    f"Input: {test.stdin}\n" \
+                    f"Output: {answ}\n"
+        
+        return True, "OK!"
+                
 
     def check(self) -> tuple[bool, str]:
         raise NotImplementedError
