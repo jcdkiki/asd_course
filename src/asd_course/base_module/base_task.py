@@ -32,18 +32,18 @@ class TimeLimitException(Exception):
 class BaseTask:
     def __init__(self, *args, **kwargs):
         self.language = kwargs["language"]
+        self.solution = kwargs["solution"]
+
         match self.language:
             case "python3":
-                self.filename = "__tester__.py"
-                with open("./src/solution.py", "r") as file:
-                    self.source = '\n'.join(file.readlines())
+                with open('solution.py', 'w') as f:
+                    f.write(self.solution)
             case "cpp":
-                self.filename = "__tester__.cpp"
-                with open("./src/solution.cpp", "r") as file:
-                    # ??? - student writes includes by himself or not
-                    self.source = '\n'.join(file.readlines())
+                with open('solution.cpp', 'w') as f:
+                    f.write(self.solution)
             case _:
                 raise LanguageException("Unexpected language")
+
         self.is_compiled = False
         self.cheating_checked = False
 
@@ -51,54 +51,59 @@ class BaseTask:
         if not self.cheating_checked:
             # smth like py_check_for_cheating(self.source)
             self.cheating_checked = True
-        # we need to give subproc smth like ["python3", "./src.py"]
+        
         try:
-            output = subprocess.check_output(
-                ["python3", self.filename], 
-                input=stdin, 
+            r = subprocess.run(
+                ["python3", "solution.py"], 
+                input=stdin,
                 universal_newlines=True,
-                timeout=time_limit
+                timeout=time_limit,
+                stderr=subprocess.STDOUT,
+                stdout=subprocess.PIPE
             )
-            return output
+            if r.returncode != 0:
+                raise Exception(f"Program exited with code {r.returncode}:\n{r.stdout}")
+            return r.stdout
         except subprocess.TimeoutExpired:
             raise TimeLimitException("Time limit expired")
     
     # throws CompileException on compilation error
     def compile_cpp(self):
-        # compile with 11 std like in moodle and get object src.o
         cpp_flags = "-Wall -Werror -std=c++11"
-        compile_cmd = (f"g++ {cpp_flags} -c -o ./__tester__.o {self.filename}").split()
-        return_code = subprocess.check_call(compile_cmd)
-        if return_code != 0:
-            raise CompileException("Compilation failed. Testing aborted")
-        print(str(subprocess.check_call(["ls","-l"])))
-
+        compile_cmd = f"g++ {cpp_flags} -c solution.cpp"
+        run = subprocess.run(compile_cmd.split(), stderr=subprocess.PIPE)
+        if run.returncode != 0:
+            raise CompileException(f"Compilation failed:\n{run.stderr.decode()}")
+        
     # throws LinkException on linking error
-    def build_cpp(self):
-        # link an object and get binary src
-        bin_cmd = (f"g++ -std=c++11 -o __tester__ ./__tester__.o").split()
-        return_code = subprocess.check_call(bin_cmd)
-        if return_code != 0:
-            raise LinkException("Linking failed. Testing aborted")
-        print(str(subprocess.check_call(["ls","-l"])))
+    def link_cpp(self):
+        bin_cmd = f"g++ -std=c++11 -o solution solution.cpp"
+        run = subprocess.run(bin_cmd.split(), stderr=subprocess.PIPE)
+        if run.returncode != 0:
+            raise LinkException(f"Linking failed:\n{run.stderr.decode()}")
         
     def run_cpp(self, stdin, time_limit) -> str:
         if not self.is_compiled:
             self.compile_cpp()
-            self.build_cpp()
+            self.link_cpp()
             self.is_compiled = True
         if not self.cheating_checked:
             # smth like cpp_check_for_cheating("src.o")
             self.cheating_checked = True
-        # we need to give subproc smth like [./src]
+        
         try:
-            output = subprocess.check_output(
-                ["./__tester__"], 
-                input=stdin, 
+            r = subprocess.run(
+                ["./solution"], 
+                input=stdin,
+                text=True,
                 universal_newlines=True,
-                timeout=time_limit
+                timeout=time_limit,
+                stderr=subprocess.STDOUT,
+                stdout=subprocess.PIPE
             )
-            return output
+            if r.returncode != 0:
+                raise Exception(f"Program exited with code {r.returncode}:\n{r.stdout}")
+            return r.stdout
         except subprocess.TimeoutExpired:
             raise TimeLimitException("Time limit expired")
 
@@ -112,27 +117,22 @@ class BaseTask:
             raise LanguageException(f"Unknown language {self.language}")
 
     def run_tests(self, tests: list[TestCase]) -> tuple[bool, str]:
-        # ??? we can skip it if student will write includes by himself idk
-        with open(self.filename, "w") as file:
-            print(self.source, file=file)
-        
-        correct = 0
         for test in tests:
             try:
                 raw_answ = self.run_solution(test.time_limit, test.stdin)
-                answ = raw_answ.strip() if raw_answ is not None else None
-                print(answ)
-            except subprocess.CalledProcessError as e:
-                return False, e.output
-            except (LinkException, CompileException, LanguageException, TimeLimitException) as e:
-                return False, str(e)
-            if answ == test.expected: # ??? maybe we can skip expected item if we will run example code in timelimit checks
-                correct+=1
-        print(f"{len(tests)} have passed!")
-        if correct == len(tests):
-            return True, "OK"
-        else:
-            return False, f"{len(tests) - correct} has failed"
+                answ = raw_answ.strip()
+            except Exception as e:
+                return False, \
+                    f"Test failed:\n" \
+                    f"Error: {str(e)}" 
+            
+            if answ != test.expected:
+                return False, \
+                    f"Test failed:\n" \
+                    f"Input: {test.stdin}\n" \
+                    f"Output: {answ}\n"
+        
+        return True, "OK!"
                 
 
     def check(self) -> tuple[bool, str]:

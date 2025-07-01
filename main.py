@@ -1,9 +1,16 @@
 import argparse
 import asd_course
+import sys
 
 def check_task(task):
     passed, msg = task.check()
-    print(passed, msg)
+    if passed:
+        print("OK!")
+        sys.exit(0)
+    
+    print(msg)
+    sys.exit(1)
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -18,7 +25,9 @@ if __name__ == "__main__":
         cls.add_args(subparser)
 
     args = parser.parse_args()
-    task = args.func(**vars(args))
+    
+    stud_code = open(f"/app/solution.{'cpp' if args.language == 'cpp' else 'py'}").read()
+    task = args.func(solution = stud_code, **vars(args))
 
     match args.mode:
         case "check": check_task(task)
