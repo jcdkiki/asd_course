@@ -1,6 +1,7 @@
 import argparse
 import dataclasses
 import subprocess
+import time
 
 @dataclasses.dataclass
 class TestCase:
@@ -33,6 +34,7 @@ class BaseTask:
     def __init__(self, *args, **kwargs):
         self.language = kwargs["language"]
         self.solution = kwargs["solution"]
+        self.shift = kwargs["shift"]
 
         match self.language:
             case "python3":
@@ -137,6 +139,24 @@ class BaseTask:
 
     def check(self) -> tuple[bool, str]:
         raise NotImplementedError
+    
+    def solve(self, stdin : str) -> tuple[str, float]:
+        if self.language == "python3":
+            cmd_comand = f"python3 solve.py --shift {self.shift}" 
+        elif self.language == "cpp":
+            cmd_comand = f"g++ -std=c++11 solve.cpp -DSHIFT=5 -o solve"
+            subprocess.run(cmd_comand)
+            cmd_comand = f"./solve"
+        
+        start = time.time()
+        run = subprocess.run(cmd_comand.split(),
+                             input=stdin,
+                             universal_newlines=True,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT)
+        end = time.time()
+        time_limit = 2 * (end - start) if end - start > 0 else 1
+        return run.stdout, time_limit
 
     @staticmethod
     def add_args(parser : argparse.ArgumentParser) -> None:

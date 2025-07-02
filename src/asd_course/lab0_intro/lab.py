@@ -4,12 +4,9 @@ import argparse
 class IntroLab(BaseTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.shift = kwargs["shift"]
-
-    def solve(self, str) -> str:
-        return ''.join([chr(97 + (ord(c) + self.shift - 97) % 26) for c in str])
 
     def check(self) -> tuple[bool, str]:
+        
         test_strs = [
             "abc",
             "gdkknvnqkc",
@@ -17,7 +14,7 @@ class IntroLab(BaseTask):
             "vnvnvnnvnvnvnvnvnvnvnvnvnvnvnvn"
         ]
 
-        tests = [ TestCase(stdin=test, expected=self.solve(test), time_limit=1) for test in test_strs ]
+        tests = [ TestCase(stdin=test, expected=self.solve(test)[0], time_limit=self.solve(test)[1]) for test in test_strs ]
         return self.run_tests(tests)
 
     @staticmethod
