@@ -60,9 +60,12 @@ def extract_options(file_path):
 
 def test_solution(language, file_path, lab_name, verbose, expect_ok=True):
     rel_path = os.path.relpath(file_path, os.path.dirname(os.path.dirname(file_path)))
+    parent_dir = os.path.dirname(os.path.dirname(file_path))
+    print(file_path)
     docker_cmd = [
         "docker", "run", "--rm",
         "-v", f"{file_path}:/app/solution.{'cpp' if language == 'cpp' else 'py'}",
+        "-v", f"{parent_dir}/solve.{'cpp' if language == 'cpp' else 'py'}:/app/solve.{'cpp' if language == 'cpp' else 'py'}",
         "moevm/asd_course",
         "--language", language,
         "--mode", "check",

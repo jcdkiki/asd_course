@@ -34,15 +34,20 @@ class BaseTask:
     def __init__(self, *args, **kwargs):
         self.language = kwargs["language"]
         self.solution = kwargs["solution"]
+        self.solve_code = kwargs["solve"]
         self.shift = kwargs["shift"]
 
         match self.language:
             case "python3":
                 with open('solution.py', 'w') as f:
                     f.write(self.solution)
+                with open('solve.py', 'w') as f:
+                    f.write(self.solve_code)
             case "cpp":
                 with open('solution.cpp', 'w') as f:
                     f.write(self.solution)
+                with open('solve.cpp', 'w') as f:
+                    f.write(self.solve_code)
             case _:
                 raise LanguageException("Unexpected language")
 
@@ -140,12 +145,12 @@ class BaseTask:
     def check(self) -> tuple[bool, str]:
         raise NotImplementedError
     
-    def solve(self, stdin : str) -> tuple[str, float]:
+    def solve(self, stdin : str) -> tuple[str, float]:        
         if self.language == "python3":
             cmd_comand = f"python3 solve.py --shift {self.shift}" 
         elif self.language == "cpp":
-            cmd_comand = f"g++ -std=c++11 solve.cpp -DSHIFT=5 -o solve"
-            subprocess.run(cmd_comand)
+            cmd_comand = f"g++ -std=c++11 -DSHIFT=5 -o solve solve.cpp"
+            subprocess.run(cmd_comand.split())
             cmd_comand = f"./solve"
         
         start = time.time()
@@ -156,7 +161,7 @@ class BaseTask:
                              stderr=subprocess.STDOUT)
         end = time.time()
         time_limit = 2 * (end - start) if end - start > 0 else 1
-        return run.stdout, time_limit
+        return run.stdout.strip(), time_limit
 
     @staticmethod
     def add_args(parser : argparse.ArgumentParser) -> None:
