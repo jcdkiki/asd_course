@@ -34,7 +34,6 @@ class BaseTask:
     def __init__(self, *args, **kwargs):
         self.language = kwargs["language"]
         self.solution = kwargs["solution"]
-        self.shift = kwargs["shift"]
         self.solve_dir = None
         self.cpp_complile_args = ""
         self.py_compile_args = ""
