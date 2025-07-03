@@ -1,5 +1,3 @@
-# options: --shift 2
-
 s = input()
 ans = ''
 for i in s:
