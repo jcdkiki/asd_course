@@ -27,8 +27,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     stud_code = open(f"/app/solution.{'cpp' if args.language == 'cpp' else 'py'}").read()
-    solve_code = open(f"/app/solve.{'cpp' if args.language == 'cpp' else 'py'}").read()
-    task = args.func(solution = stud_code, solve = solve_code, **vars(args))
+    task = args.func(solution = stud_code, **vars(args))
 
     match args.mode:
         case "check": check_task(task)

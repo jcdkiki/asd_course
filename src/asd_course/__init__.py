@@ -9,9 +9,7 @@ def __load_lab_modules():
     cur_loc = __path__[0]
 
     for name in os.listdir(cur_loc):
-        if name.startswith("lab") and os.path.isdir(f"{cur_loc}/{name}"):
-            lab = name[:name.find("_")]
-            lab = lab[0].capitalize() + lab[1:]
+        if name != "base_module" and os.path.isdir(f"{cur_loc}/{name}"):
             mod = importlib.import_module(f".{name}", "asd_course")
             for name, obj in inspect.getmembers(mod):
                 if isinstance(obj, (BaseTask)):

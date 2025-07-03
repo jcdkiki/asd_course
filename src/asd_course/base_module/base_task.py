@@ -34,23 +34,22 @@ class BaseTask:
     def __init__(self, *args, **kwargs):
         self.language = kwargs["language"]
         self.solution = kwargs["solution"]
-        self.solve_code = kwargs["solve"]
         self.shift = kwargs["shift"]
+        self.solve_dir = None
+        self.cpp_complile_args = ""
+        self.py_compile_args = ""
 
         match self.language:
             case "python3":
                 with open('solution.py', 'w') as f:
                     f.write(self.solution)
-                with open('solve.py', 'w') as f:
-                    f.write(self.solve_code)
             case "cpp":
                 with open('solution.cpp', 'w') as f:
                     f.write(self.solution)
-                with open('solve.cpp', 'w') as f:
-                    f.write(self.solve_code)
             case _:
                 raise LanguageException("Unexpected language")
 
+        self.is_solve_compiled = False
         self.is_compiled = False
         self.cheating_checked = False
 
@@ -123,34 +122,43 @@ class BaseTask:
         else:
             raise LanguageException(f"Unknown language {self.language}")
 
-    def run_tests(self, tests: list[TestCase]) -> tuple[bool, str]:
+    def run_tests(self, tests : list[str]) -> tuple[bool, str]:
         for test in tests:
-            try:
-                raw_answ = self.run_solution(test.time_limit, test.stdin)
-                answ = raw_answ.strip()
-            except Exception as e:
-                return False, \
-                    f"Test failed:\n" \
-                    f"Error: {str(e)}" 
-            
-            if answ != test.expected:
-                return False, \
-                    f"Test failed:\n" \
-                    f"Input: {test.stdin}\n" \
-                    f"Output: {answ}\n"
+            expected, time_limit = self.solve(test)
+            ok, msg = self.run_test(TestCase(test, expected, time_limit))
+            if not ok:
+                return ok, msg
         
         return True, "OK!"
-                
+
+    def run_test(self, test : TestCase) -> tuple[bool, str]:
+        try:
+            raw_answ = self.run_solution(test.time_limit, test.stdin)
+            answ = raw_answ.strip()
+        except Exception as e:
+            return False, \
+                f"Test failed:\n" \
+                f"Error: {str(e)}" 
+        
+        if answ != test.expected:
+            return False, \
+                f"Test failed:\n" \
+                f"Input: {test.stdin}\n" \
+                f"Output: {answ}\n"
+        
+        return True, "OK!"
 
     def check(self) -> tuple[bool, str]:
         raise NotImplementedError
     
-    def solve(self, stdin : str) -> tuple[str, float]:        
+    def solve(self, stdin : str) -> tuple[str, float]:
         if self.language == "python3":
-            cmd_comand = f"python3 solve.py --shift {self.shift}" 
+            cmd_comand = f"python3 {self.solve_dir}/solve.py {self.py_compile_args}" 
         elif self.language == "cpp":
-            cmd_comand = f"g++ -std=c++11 -DSHIFT=5 -o solve solve.cpp"
-            subprocess.run(cmd_comand.split())
+            if not self.is_solve_compiled:
+                cmd_comand = f"g++ -std=c++11 {self.cpp_complile_args} -o solve {self.solve_dir}/solve.cpp"
+                subprocess.run(cmd_comand.split())
+                self.is_solve_compiled = True
             cmd_comand = f"./solve"
         
         start = time.time()
