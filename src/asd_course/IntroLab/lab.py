@@ -6,6 +6,8 @@ class IntroLab(BaseTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.shift = kwargs["shift"]
+
         self.solve_dir = os.path.dirname(os.path.realpath(__file__))
         self.cpp_complile_args = f"-DSHIFT={self.shift}"
         self.py_compile_args   = f"--shift {self.shift}"
